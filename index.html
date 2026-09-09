@@ -54,7 +54,7 @@ body.light{--bg:#f4f4f4;--bg2:#fff;--bg3:#efefef;--bg4:#e5e5e5;--border:#ddd;--b
 .sp-push{color:#4e9eff}.sp-pull{color:#4ecf8a}.sp-legs{color:#ffaa4e}.sp-arms{color:#ff7eb3}
 .sp-sub{font-size:10px;color:var(--text2);margin-top:2px}
 
-.main{padding:12px 12px 90px;max-width:540px;margin:0 auto}
+.main{padding:12px 12px 105px;max-width:540px;margin:0 auto}
 .slbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:14px 0 7px}
 
 .start-banner{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;margin-bottom:14px}
@@ -158,7 +158,7 @@ body.light .rest-hdr{background:#fff}
 .fin-btn.red{background:rgba(255,94,94,.1);color:var(--danger);border:1px solid rgba(255,94,94,.25)}
 .fin-btn.grey{background:transparent;color:var(--text3);border:1px solid var(--border)}
 
-.pgmain{padding:12px 12px 90px;max-width:540px;margin:0 auto}
+.pgmain{padding:12px 12px 105px;max-width:540px;margin:0 auto}
 .pgfilter{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
 .pgsel{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;flex:1;min-width:0;font-family:inherit}
 .pgsec{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:14px 0 7px}
@@ -176,7 +176,7 @@ body.light .rest-hdr{background:#fff}
 .cldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 canvas{display:block;width:100%}
 
-.calmain{padding:12px 12px 90px;max-width:540px;margin:0 auto}
+.calmain{padding:12px 12px 105px;max-width:540px;margin:0 auto}
 .calnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .calnav-btn{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:6px 14px;color:var(--text);font-size:14px;cursor:pointer}
 .calmonth{font-size:15px;font-weight:600}
@@ -202,7 +202,7 @@ canvas{display:block;width:100%}
 .hist-cnt{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px}
 .hist-row{font-size:12px;color:var(--text2);padding:4px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px}
 
-.profmain{padding:12px 12px 90px;max-width:540px;margin:0 auto}
+.profmain{padding:12px 12px 105px;max-width:540px;margin:0 auto}
 .ptabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
 .ptab{flex:1;min-width:calc(50% - 3px);padding:8px;text-align:center;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;user-select:none}
 .ptab.on{background:rgba(212,255,78,.1);border-color:var(--accent);color:var(--accent)}
@@ -232,7 +232,7 @@ canvas{display:block;width:100%}
 .stat-val{font-size:22px;font-weight:700;color:var(--accent)}
 .stat-lbl{font-size:11px;color:var(--text2);margin-top:3px}
 
-.guide-main{padding:12px 12px 90px;max-width:540px;margin:0 auto}
+.guide-main{padding:12px 12px 105px;max-width:540px;margin:0 auto}
 .guide-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden}
 .guide-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
 .guide-head:active{background:var(--bg3)}
@@ -265,11 +265,11 @@ canvas{display:block;width:100%}
 .exlist-item:active{background:var(--bg4)}
 .photo-modal-img{width:100%;max-height:65vh;object-fit:contain;border-radius:8px;margin-bottom:10px}
 
-.btabs{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
-.btab{flex:1;padding:9px 0 7px;text-align:center;cursor:pointer;border:none;background:none;user-select:none}
+.btabs{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:calc(env(safe-area-inset-bottom) + 8px)}
+.btab{flex:1;padding:13px 0 9px;text-align:center;cursor:pointer;border:none;background:none;user-select:none;min-height:52px}
 .btab:active{opacity:.6}
-.bticon{font-size:18px;display:block;margin-bottom:1px}
-.btlbl{font-size:9px;color:var(--text3);letter-spacing:.03em;display:block}
+.bticon{font-size:23px;display:block;margin-bottom:3px}
+.btlbl{font-size:11px;color:var(--text3);letter-spacing:.03em;display:block;font-weight:600}
 .btab.on .btlbl{color:var(--accent)}
 
 .toast{position:fixed;top:68px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--accent);color:var(--accent);padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:1000;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
@@ -324,7 +324,7 @@ const SESSIONS=[
     {l:'Bloque C — Aislamiento pecho y hombro lateral',ex:[
       {id:'u1c1',n:'Cruces de polea',s:'3x12-15',b:[],
        note:'Media altura. 20seg descanso antes de C2.'},
-      {id:'u1c2',n:'Elevaciones laterales en polea baja',s:'3x12-15',b:['drop'],
+      {id:'u1c2',n:'Elevaciones laterales con mancuernas',s:'3x12-15',b:['drop'],
        note:'DROP SET en la última serie. 60seg descanso tras el par.'},
     ]},
     {l:'Bloque D — Biserie express de brazo (bombeo final)',ex:[
@@ -376,14 +376,18 @@ const SESSIONS=[
        note:'Estiramiento dorsal máximo. 60seg descanso tras el par.'},
     ]},
     {l:'Bloque D — Triserie gigante hombro lateral y posterior (3 vueltas)',ex:[
-      {id:'u2d',n:'Elevación lateral + Face pulls con cuerda + Pájaros deltoides posterior',s:'12-15 / 15 / 12-15',b:['tri','rp'],
-       note:'Polea o mancuerna en la lateral. TRISERIE sin descanso entre ejercicios, 3 vueltas. 60seg al terminar la ronda. REST-PAUSE en la 3ª vuelta de los tres ejercicios.'},
+      {id:'u2d1',n:'Elevaciones laterales en polea baja',s:'12-15',b:['tri'],
+       note:'1er ejercicio de la triserie. Sin descanso, pasa directo al siguiente.'},
+      {id:'u2d2',n:'Face pulls con cuerda',s:'15',b:['tri'],
+       note:'2º ejercicio de la triserie. Sin descanso, pasa directo al siguiente.'},
+      {id:'u2d3',n:'Pájaros deltoides posterior',s:'12-15',b:['tri','rp'],
+       note:'Cierra la triserie. 3 vueltas en total, 60seg descanso al terminar cada ronda. REST-PAUSE en la 3ª vuelta de los tres ejercicios.'},
     ]},
   ]},
 
   {id:'arms',label:'ARM SPECIALIZATION',sub:'Forearms & Core',color:'#ff7eb3',type:'arms',secs:[
     {l:'Bloque A — Tríceps y bíceps pesados',ex:[
-      {id:'a1a1',n:'Press de banca agarre cerrado',s:'4x6-8',b:[],
+      {id:'a1a1',n:'Press de banca agarre cerrado multipower',s:'4x6-8',b:[],
        note:'Tríceps pesado. 30seg descanso antes de A2.'},
       {id:'a1a2',n:'Curl martillo con mancuernas',s:'4x8-10',b:[],
        note:'Pesado. 90seg descanso tras el par. Brazos frescos: sin entreno de brazos el día anterior.'},
@@ -391,22 +395,28 @@ const SESSIONS=[
     {l:'Bloque B — Estiramiento tríceps y bíceps',ex:[
       {id:'a1b1',n:'Extensión overhead de tríceps tras nuca con cuerda',s:'3x10-12',b:[],
        note:'20seg descanso antes de B2.'},
-      {id:'a1b2',n:'Curl inclinado con mancuernas',s:'3x10-12',b:[],
-       note:'Estiramiento de bíceps. 75seg descanso tras el par.'},
+      {id:'a1b2',n:'Curl barra Z predicador',s:'3x10-12',b:[],
+       note:'Codos fijos en el banco predicador, controla la fase excéntrica. 75seg descanso tras el par.'},
     ]},
     {l:'Bloque C — Bombeo final de brazo',ex:[
       {id:'a1c1',n:'Pushdown de tríceps con barra recta',s:'3x10-12',b:[],
        note:'15seg descanso antes de C2.'},
-      {id:'a1c2',n:'Curl spider en banco inclinado',s:'3x10-12',b:['drop'],
-       note:'O predicador. DROP SET final en ambos ejercicios. 60seg descanso tras el par.'},
+      {id:'a1c2',n:'Curl Bayesian en polea baja',s:'3x10-12',b:['drop'],
+       note:'De espaldas a la polea, brazo detrás del cuerpo para máximo estiramiento. DROP SET final en ambos ejercicios. 60seg descanso tras el par.'},
     ]},
     {l:'Antebrazo',ex:[
-      {id:'a1d',n:'Curl de muñeca + Extensión de muñeca + Farmer hold / agarre pesadas',s:'2x15-20 / 2x15-20 / 2x45"',b:['tri'],
-       note:'Encadena los tres sin romper el ritmo. 45seg descanso tras la ronda.'},
+      {id:'a1d1',n:'Curl de muñeca',s:'2x15-20',b:[],
+       note:'Antebrazo. Puedes encadenarlo con extensión de muñeca y farmer hold sin descanso entre sí, como un circuito.'},
+      {id:'a1d2',n:'Extensión de muñeca',s:'2x15-20',b:[],
+       note:'2º ejercicio del circuito de antebrazo.'},
+      {id:'a1d3',n:'Farmer hold / agarre pesadas',s:'2x45"',b:[],
+       note:'Cierra el circuito de antebrazo. 45seg descanso tras completar los tres.'},
     ]},
     {l:'Core',ex:[
-      {id:'a1e',n:'Crunch abdominal en polea alta + Elevaciones de piernas',s:'3x15-20 / 3xfallo',b:['bi'],
-       note:'Biserie sin descanso entre ejercicios, 3 vueltas. 45seg entre rondas.'},
+      {id:'a1e1',n:'Crunch abdominal en polea alta',s:'3x15-20',b:[],
+       note:'Puedes encadenarlo con elevaciones de piernas sin descanso, como un circuito.'},
+      {id:'a1e2',n:'Elevaciones de piernas',s:'3xfallo',b:[],
+       note:'Cierra el circuito de core. 45seg descanso entre rondas.'},
     ]},
   ]},
 ];
