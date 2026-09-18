@@ -298,6 +298,7 @@ canvas{display:block;width:100%}
 <div id="modal-ex" style="display:none"></div>
 <div id="modal-photo" style="display:none"></div>
 <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+<input type="file" id="backup-input" accept="application/json,.json" style="display:none" onchange="importBackup(event)">
 <div id="toast" class="toast"></div>
 <script>
 // ═══════════════════════════════ DATA ═══════════════════════════════
@@ -1229,6 +1230,7 @@ function renderProfile(){
   h+='<div class="ptab'+(profTab==='medidas'?' on':'')+'" onclick="setProfTab(\'medidas\')">📏 Medidas</div>';
   h+='<div class="ptab'+(profTab==='fotos'?' on':'')+'" onclick="setProfTab(\'fotos\')">📸 Fotos</div>';
   h+='<div class="ptab'+(profTab==='stats'?' on':'')+'" onclick="setProfTab(\'stats\')">🏆 Stats</div>';
+  h+='<div class="ptab'+(profTab==='backup'?' on':'')+'" onclick="setProfTab(\'backup\')">💾 Backup</div>';
   h+='</div>';
 
   if(profTab==='peso'){
@@ -1295,6 +1297,26 @@ function renderProfile(){
     h+='<div class="stat-card"><div class="stat-val">'+countPBs(fromS)+'</div><div class="stat-lbl">Nuevos records</div></div></div>';
     h+='<div class="chartbox"><div class="charttitle">Distribución muscular</div><canvas id="radar-c" height="260"></canvas></div>';
     setTimeout(()=>drawRadar(fromS),50);
+  }
+
+  if(profTab==='backup'){
+    const nWorkouts=completed.length;
+    const nExDays=Object.keys(sessions).length;
+    const nPhotos=photoLog.length;
+    h+='<p style="font-size:13.5px;color:var(--text2);line-height:1.6;margin-bottom:14px">Tus datos se guardan solo en este móvil. Descarga una copia de seguridad de vez en cuando para no perder nada si se borran los datos de Safari o cambias de teléfono.</p>';
+    h+='<div class="pgcard" style="margin-bottom:12px">';
+    h+='<div class="pgentry" style="border-top:none"><span class="pgdate">Entrenamientos completados</span><span class="pgsets" style="color:var(--accent)">'+nWorkouts+'</span></div>';
+    h+='<div class="pgentry"><span class="pgdate">Días con series registradas</span><span class="pgsets" style="color:var(--accent)">'+nExDays+'</span></div>';
+    h+='<div class="pgentry"><span class="pgdate">Registros de peso</span><span class="pgsets" style="color:var(--accent)">'+weightLog.length+'</span></div>';
+    h+='<div class="pgentry"><span class="pgdate">Registros de medidas</span><span class="pgsets" style="color:var(--accent)">'+measLog.length+'</span></div>';
+    h+='<div class="pgentry"><span class="pgdate">Fotos guardadas</span><span class="pgsets" style="color:var(--accent)">'+nPhotos+'</span></div>';
+    h+='</div>';
+    h+='<button class="msave-btn" onclick="exportBackup()" style="margin-top:0">⬇️ Descargar copia de seguridad</button>';
+    h+='<p style="font-size:12px;color:var(--text3);line-height:1.55;margin:8px 0 18px">Se descarga un archivo .json. Guárdalo en Archivos, iCloud o envíatelo por correo.</p>';
+    h+='<div class="pgsec">Restaurar</div>';
+    h+='<p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px">Carga un archivo de copia de seguridad para recuperar tus datos. Esto <strong>sustituirá</strong> todo lo que tengas ahora en la app.</p>';
+    h+='<button class="msave-btn" style="background:var(--bg4);color:var(--text);border:1px solid var(--border2);margin-top:0" onclick="document.getElementById(\'backup-input\').click()">⬆️ Restaurar desde archivo</button>';
+    if(nPhotos>0)h+='<p style="font-size:12px;color:var(--text3);line-height:1.55;margin-top:12px">Nota: las fotos ocupan mucho, así que el archivo puede ser grande. Si falla la descarga, usa el botón de abajo para exportar sin fotos.</p><button class="msave-btn" style="background:transparent;color:var(--text2);border:1px solid var(--border);margin-top:8px" onclick="exportBackup(true)">Descargar copia sin fotos</button>';
   }
   h+='</div>';return h;
 }
@@ -1491,6 +1513,63 @@ window.openPhoto=function(idx){
 };
 window.closePhoto=function(){document.getElementById('modal-photo').style.display='none';};
 window.delPhoto=function(idx){photoLog.splice(idx,1);sv('photoLog',photoLog);document.getElementById('modal-photo').style.display='none';toast('Foto eliminada');render();};
+
+// ═══════════════════════════════ BACKUP ═══════════════════════════════
+const BACKUP_KEYS=['sessions','customEx','completed','weightLog','measLog','photoLog','curSess','curFolder','isDark','openCards'];
+
+window.exportBackup=function(skipPhotos){
+  try{
+    const data={_app:'rutina-gimnasio-angel',_version:1,_exported:new Date().toISOString(),data:{}};
+    BACKUP_KEYS.forEach(k=>{
+      if(skipPhotos&&k==='photoLog')return;
+      const raw=localStorage.getItem('rv7_'+k);
+      if(raw!=null)data.data[k]=raw;
+    });
+    const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='rutina-backup-'+today()+(skipPhotos?'-sinfotos':'')+'.json';
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+    toast('Copia descargada');
+  }catch(e){
+    toast('No se pudo descargar la copia');
+  }
+};
+
+window.importBackup=function(e){
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=function(ev){
+    let parsed;
+    try{parsed=JSON.parse(ev.target.result);}
+    catch(err){toast('Archivo no válido');e.target.value='';return;}
+    if(!parsed||!parsed.data||parsed._app!=='rutina-gimnasio-angel'){
+      toast('No es una copia de esta app');e.target.value='';return;
+    }
+    const n=(()=>{try{return (JSON.parse(parsed.data.completed||'[]')).length;}catch(x){return '?';}})();
+    if(!confirm('Restaurar la copia del '+(parsed._exported||'').split('T')[0]+'?\n\nContiene '+n+' entrenamientos.\nSe sustituirán todos los datos actuales de la app.'))
+      {e.target.value='';return;}
+    try{
+      Object.keys(parsed.data).forEach(k=>{
+        if(BACKUP_KEYS.indexOf(k)>=0)localStorage.setItem('rv7_'+k,parsed.data[k]);
+      });
+      // Limpia cualquier entrenamiento a medias para evitar estados raros
+      localStorage.setItem('rv7_activeSess',JSON.stringify(''));
+      localStorage.setItem('rv7_stSec',JSON.stringify(0));
+      localStorage.setItem('rv7_stStart',JSON.stringify(0));
+      localStorage.setItem('rv7_rtEnd',JSON.stringify(0));
+      toast('Copia restaurada');
+      setTimeout(()=>location.reload(),600);
+    }catch(err){
+      toast('Error al restaurar');
+    }
+    e.target.value='';
+  };
+  r.readAsText(file);
+};
 
 window.saveWeight=function(){
   const v=parseFloat((document.getElementById('w-inp')||{}).value);
