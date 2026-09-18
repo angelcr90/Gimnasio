@@ -125,13 +125,14 @@ body.light{--bg:#f4f4f4;--bg2:#fff;--bg3:#efefef;--bg4:#e5e5e5;--border:#ddd;--b
 .rc-time.warn{color:var(--danger)}
 .rc-skip{font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:var(--bg4);color:var(--text2);cursor:pointer}
 
-.rest-hdr{position:sticky;top:47px;z-index:199;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rest-hdr{position:sticky;top:47px;z-index:199;background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 10px;display:flex;align-items:center;gap:7px}
 body.light .rest-hdr{background:#fff}
-.rest-hdr-time{font-size:21px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;min-width:44px;cursor:pointer}
+.rest-hdr-time{font-size:21px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;min-width:52px;cursor:pointer;flex-shrink:0}
 .rest-hdr-time.warn{color:var(--danger)}
 .rest-hdr-time.idle{color:var(--text3);font-size:12px;font-weight:600}
-.rest-hdr-btns{display:flex;gap:5px;flex-wrap:nowrap}
-.rest-hdr-btn{padding:8px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:13px;cursor:pointer;font-weight:700;white-space:nowrap}
+.rest-hdr-btns{display:flex;gap:4px;flex-wrap:nowrap;flex:1;overflow-x:auto;scrollbar-width:none;justify-content:flex-end}
+.rest-hdr-btns::-webkit-scrollbar{display:none}
+.rest-hdr-btn{padding:8px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:12.5px;cursor:pointer;font-weight:700;white-space:nowrap;flex-shrink:0}
 .rest-hdr-btn:active{background:var(--accent);color:#0f0f0f;border-color:var(--accent)}
 .rest-hdr-skip{padding:6px 8px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
 .tbar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -729,11 +730,23 @@ function ensurePlannedSets(sk,exId,schemeStr,exName){
   const sess=getSets(sk,exId);
   if(exName&&!sess.name){sess.name=exName;saveSess();}
   if(sess.sets.length)return sess.sets;
+
+  // Si hay registro anterior, replicamos EXACTAMENTE su estructura:
+  // mismo numero de series y mismos tipos (W, N, D, ...), con sus kg/reps.
+  const prevAll=getPrev(sk,exId);
+  const prev=prevAll?prevAll.filter(s=>s.done||s.kg||s.reps):null;
+  if(prev&&prev.length){
+    prev.forEach(p=>{
+      sess.sets.push({kg:p.kg||'',reps:p.reps||'',rir:'',rest:p.rest||'',done:false,type:p.type||'N'});
+    });
+    saveSess();
+    return sess.sets;
+  }
+
+  // Sin registro previo: usamos el numero de series planificado en la rutina.
   const planned=countPlanned(schemeStr);
-  const prev=getPrev(sk,exId);
   for(let i=0;i<planned;i++){
-    const p=prev&&prev[i]?prev[i]:null;
-    sess.sets.push({kg:p?p.kg||'':'',reps:p?p.reps||'':'',rir:'',rest:p?p.rest||'':'',done:false,type:p?p.type||'N':'N'});
+    sess.sets.push({kg:'',reps:'',rir:'',rest:'',done:false,type:'N'});
   }
   saveSess();
   return sess.sets;
@@ -912,6 +925,7 @@ function renderTrain(){
     h+='<button class="rest-hdr-btn" onclick="setTI(60)">60"</button>';
     h+='<button class="rest-hdr-btn" onclick="setTI(90)">1\'30</button>';
     h+='<button class="rest-hdr-btn" onclick="setTI(120)">2\'</button>';
+    h+='<button class="rest-hdr-btn" onclick="setTI(150)">2\'30</button>';
     h+='<button class="rest-hdr-btn" onclick="setTI(180)">3\'</button>';
     h+='</div>';
     h+='<button class="rest-hdr-skip" onclick="skipRT()">✕</button>';
