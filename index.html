@@ -27,7 +27,7 @@ body.light{--bg:#f4f4f4;--bg2:#fff;--bg3:#efefef;--bg4:#e5e5e5;--border:#ddd;--b
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 9px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;gap:8px}
 .hdr-title{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);flex-shrink:0}
 .hdr-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.hdr-timer{font-size:15px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.hdr-timer{font-size:15px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;cursor:pointer;padding:6px 4px}
 .icon-btn{background:transparent;border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text2);font-size:14px;cursor:pointer;line-height:1}
 
 .folder-back-bar{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg2);border-bottom:1px solid var(--border)}
@@ -59,6 +59,15 @@ body.light{--bg:#f4f4f4;--bg2:#fff;--bg3:#efefef;--bg4:#e5e5e5;--border:#ddd;--b
 
 .start-banner{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;margin-bottom:14px}
 .start-banner p{font-size:15px;color:var(--text2);margin-bottom:12px;line-height:1.55}
+.past-btn{margin-top:12px;padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13.5px;cursor:pointer}
+.late-banner{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);color:var(--warm);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.5;margin-bottom:10px;cursor:pointer}
+.tm-num{flex:none!important;width:64px;text-align:center}
+.tm-unit{font-size:13px;color:var(--text2)}
+.tm-check{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);margin:6px 0}
+.tm-check input{width:20px;height:20px}
+.tm-hint{font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:10px}
+.hist-edit{padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg4);color:var(--text2);font-size:12px;cursor:pointer;flex-shrink:0}
+.hist-editlink{color:var(--accent);padding:4px 2px;cursor:pointer}
 .start-btn{padding:14px 34px;border-radius:8px;border:none;background:var(--accent);color:#0f0f0f;font-size:15.5px;font-weight:700;cursor:pointer}
 .start-btn:active{background:var(--accent2)}
 
@@ -281,7 +290,7 @@ canvas{display:block;width:100%}
 <div class="hdr">
   <span class="hdr-title">RUTINA GIMNASIO ANGEL</span>
   <div class="hdr-right">
-    <span class="hdr-timer" id="hdr-timer" style="display:none">⏱ 0:00</span>
+    <span class="hdr-timer" id="hdr-timer" style="display:none" onclick="openTimeModal('active')">⏱ 0:00</span>
     <button class="icon-btn" id="theme-btn" onclick="toggleTheme()">☀️</button>
     <span style="font-size:11px;color:var(--text2)" id="hdr-date"></span>
   </div>
@@ -297,6 +306,7 @@ canvas{display:block;width:100%}
 <div id="modal-type" style="display:none"></div>
 <div id="modal-ex" style="display:none"></div>
 <div id="modal-photo" style="display:none"></div>
+<div id="modal-time" style="display:none"></div>
 <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
 <input type="file" id="backup-input" accept="application/json,.json" style="display:none" onchange="importBackup(event)">
 <div id="toast" class="toast"></div>
@@ -675,6 +685,8 @@ let pendPhoto   = '';
 // Session timer
 let stSec = ld('stSec',0);
 let stStart = ld('stStart',0);
+let stFixed = ld('stFixed',null);   // si no es null: duración manual fija (segundos)
+let activeDate = ld('activeDate',''); // fecha (YYYY-MM-DD) del entrenamiento en curso
 let stOn  = false;
 let stInt = null;
 
@@ -683,7 +695,10 @@ let rtSec = 0, rtOn = false, rtInt = null;
 let rtEnd = ld('rtEnd',0), rtPaused = 0;
 
 // ═══════════════════════════════ HELPERS ═══════════════════════════════
-const today  = ()=>new Date().toISOString().split('T')[0];
+const dstr   = d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today  = ()=>dstr(new Date());
+// Fecha a la que pertenece lo que se registra: la del entrenamiento en curso (puede ser un día pasado) o hoy
+const wDate  = ()=>(activeSess&&activeDate)?activeDate:today();
 const fmt    = s=>`${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
 const fmtH   = s=>{const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`:`${m}:${String(sc).padStart(2,'0')}`;};
 const haptic = p=>{try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}};
@@ -705,20 +720,25 @@ function getSessData(id){
 }
 
 function getSets(sk,exId){
-  const dk=today()+'_'+sk;
+  const dk=wDate()+'_'+sk;
   if(!sessions[dk])sessions[dk]={};
   if(!sessions[dk][exId])sessions[dk][exId]={sets:[],note:''};
   return sessions[dk][exId];
 }
 
 function getPrev(sk,exId){
-  for(let i=1;i<=28;i++){
-    const d=new Date();d.setDate(d.getDate()-i);
-    const dk=d.toISOString().split('T')[0]+'_'+sk;
-    if(sessions[dk]&&sessions[dk][exId]&&sessions[dk][exId].sets&&sessions[dk][exId].sets.length)
-      return sessions[dk][exId].sets;
+  // Busca hacia atrás desde la fecha del entrenamiento. Prefiere la última vez que
+  // realmente se hizo (series marcadas ✓); si no hay ninguna, la última con datos.
+  const base=new Date(wDate()+'T12:00:00');
+  let fallback=null;
+  for(let i=1;i<=120;i++){
+    const d=new Date(base);d.setDate(d.getDate()-i);
+    const e=sessions[dstr(d)+'_'+sk]&&sessions[dstr(d)+'_'+sk][exId];
+    if(!e||!e.sets||!e.sets.length)continue;
+    if(e.sets.some(s=>s.done))return e.sets;
+    if(!fallback)fallback=e.sets;
   }
-  return null;
+  return fallback;
 }
 
 function countPlanned(schemeStr){
@@ -738,7 +758,7 @@ function ensurePlannedSets(sk,exId,schemeStr,exName){
   const prev=prevAll?prevAll.filter(s=>s.done||s.kg||s.reps):null;
   if(prev&&prev.length){
     prev.forEach(p=>{
-      sess.sets.push({kg:p.kg||'',reps:p.reps||'',rir:'',rest:p.rest||'',done:false,type:p.type||'N'});
+      sess.sets.push({kg:p.kg||'',reps:p.reps||'',rir:(p.rir!==undefined?p.rir:''),rest:p.rest||'',done:false,type:p.type||'N'});
     });
     saveSess();
     return sess.sets;
@@ -759,28 +779,29 @@ function exDisplayName(dk,xid){
 }
 
 const saveSess  = ()=>sv('sessions',sessions);
-const isFinished= ()=>completed.some(w=>w.date===today()&&w.sessId===curSess);
+const isFinished= ()=>completed.some(w=>w.date===wDate()&&w.sessId===curSess);
 const isStarted = ()=>activeSess===curSess||isFinished();
 
 // ═══════════════════════════════ SESSION TIMER ═══════════════════════════════
 function startST(){
+  if(stFixed!==null){stopST();stSec=stFixed;updSTUI();return;}
   if(!stStart){stStart=Date.now()-stSec*1000;sv('stStart',stStart);}
-  if(stOn)return;
+  clearInterval(stInt);
   stOn=true;
   stInt=setInterval(syncST,1000);
   syncST();
 }
 function syncST(){
-  if(!stStart)return;
+  if(!stStart||stFixed!==null)return;
   stSec=Math.max(0,Math.floor((Date.now()-stStart)/1000));
   sv('stSec',stSec);
   updSTUI();
 }
 function stopST(){clearInterval(stInt);stInt=null;stOn=false;}
-function resetST(){stopST();stSec=0;stStart=0;sv('stSec',0);sv('stStart',0);updSTUI();}
+function resetST(){stopST();stSec=0;stStart=0;stFixed=null;sv('stSec',0);sv('stStart',0);sv('stFixed',null);updSTUI();}
 function updSTUI(){
   const el=document.getElementById('hdr-timer');
-  if(el){el.style.display=(activeSess===curSess)?'block':'none';el.textContent='⏱ '+fmtH(stSec);}
+  if(el){el.style.display=(activeSess===curSess)?'block':'none';el.textContent='⏱ '+fmtH(stSec)+' ✎';}
 }
 
 // ═══════════════════════════════ REST TIMER (header bar) ═══════════════════════════════
@@ -825,7 +846,7 @@ window.skipRT=function(){rtPaused=0;resetRT();};
 
 // Recalcula ambos relojes al volver a la app (iOS congela los intervalos en segundo plano)
 function resumeTimers(){
-  if(stStart&&activeSess){stOn=false;startST();}
+  if(activeSess)startST();
   if(rtEnd){rtOn=true;clearInterval(rtInt);rtInt=setInterval(syncRT,250);syncRT();}
   else updRTUI();
 }
@@ -911,6 +932,7 @@ function renderTrain(){
     h+='<div class="start-banner">';
     h+='<p>Revisa los ejercicios y cuando estés listo pulsa iniciar</p>';
     h+='<button class="start-btn" onclick="doStart()">▶ Iniciar entrenamiento</button>';
+    h+='<div><button class="past-btn" onclick="startPast()">📅 Registrar un entrenamiento de otro día</button></div>';
     h+='</div>';
     for(let i=0;i<day.secs.length;i++){
       h+='<div class="slbl">'+day.secs[i].l+'</div>';
@@ -919,7 +941,11 @@ function renderTrain(){
       }
     }
   } else {
-    // Active training — sticky rest-timer bar
+    // Active training
+    if(activeSess===curSess&&activeDate&&activeDate!==today()){
+      h+='<div class="late-banner" onclick="openTimeModal(\'active\')">📅 Entrenamiento con fecha <strong>'+activeDate+'</strong>. Toca aquí o en el ⏱ de arriba para cambiar fecha y duración.</div>';
+    }
+    // sticky rest-timer bar
     h+='<div class="rest-hdr">';
     h+='<span class="rest-hdr-time'+(rtSec>0?(rtSec<=10?' warn':''):' idle')+'" id="rest-hdr-time" onclick="toggleTIhdr()">'+(rtSec>0?fmt(rtSec):'Descanso')+'</span>';
     h+='<div class="rest-hdr-btns">';
@@ -938,7 +964,7 @@ function renderTrain(){
       }
     }
 
-    const dk=today()+'_'+day.id;
+    const dk=wDate()+'_'+day.id;
     const note=(sessions[dk]&&sessions[dk]['__note__'])||'';
     h+='<div class="snwrap"><div class="snlbl">Nota de sesión</div>';
     h+='<textarea class="sntxt" placeholder="Sensaciones, pesos, ajustes..." data-sk="'+day.id+'" onchange="saveNote(this)">'+note+'</textarea></div>';
@@ -979,7 +1005,7 @@ function renderExCard(sk,ex,active){
   let body='';
   if(isOpen){
     if(prev&&prev.filter(s=>s.done&&(s.kg||s.reps)).length>0){
-      const hint=prev.filter(s=>s.done&&(s.kg||s.reps)).map(s=>(s.kg||'?')+'kg×'+(s.reps||'?')).join(' · ');
+      const hint=prev.filter(s=>s.done&&(s.kg||s.reps)).map(s=>(s.kg||'?')+'kg×'+(s.reps||'?')+(s.rir!==undefined&&s.rir!==''?' R'+s.rir:'')).join(' · ');
       body+='<div class="prevhint">↩ Anterior: '+hint+'</div>';
     }
     body+='<div class="exnote">'+(ex.note||'')+'</div>';
@@ -1055,24 +1081,40 @@ function buildSetsTable(sk,exId,setsArr){
 }
 
 // ─── WORKOUT ACTIONS ──────────────────────────────────────────────────────────
-window.doStart=function(){activeSess=curSess;sv('activeSess',activeSess);startST();render();};
+window.doStart=function(){
+  activeSess=curSess;sv('activeSess',activeSess);
+  activeDate=today();sv('activeDate',activeDate);
+  stopST();stFixed=null;sv('stFixed',null);
+  stSec=0;stStart=Date.now();sv('stSec',0);sv('stStart',stStart);
+  startST();render();
+};
+window.startPast=function(){window.doStart();openTimeModal('active',null,false);};
 window.warnLocked=function(){toast('Finaliza o cancela el entrenamiento en curso primero');};
 
 window.finishWorkout=function(){
+  if(stFixed===null&&stSec>3*3600){
+    if(confirm('El cronómetro marca '+fmtH(stSec)+'. ¿Quieres corregir la duración antes de finalizar?\n\nAceptar = corregir · Cancelar = finalizar así')){openTimeModal('active');return;}
+  }
   const d=getSessData();
-  const entry={date:today(),sessId:curSess,label:d.label,sub:d.sub,dur:stSec,type:d.type};
-  const idx=completed.findIndex(w=>w.date===today()&&w.sessId===curSess);
+  const date=wDate();
+  const entry={date:date,sessId:curSess,label:d.label,sub:d.sub,dur:stSec,type:d.type};
+  const idx=completed.findIndex(w=>w.date===date&&w.sessId===curSess);
   if(idx>=0)completed[idx]=entry;else completed.push(entry);
   sv('completed',completed);
   activeSess='';sv('activeSess','');
+  activeDate='';sv('activeDate','');
   resetST();resetRT();haptic([60,40,120]);
-  toast('✓ Entrenamiento guardado');render();
+  toast('✓ Entrenamiento guardado'+(date!==today()?' ('+date+')':''));render();
 };
 
 window.cancelWorkout=function(){
   const fi=isFinished();
-  if(fi){completed=completed.filter(w=>!(w.date===today()&&w.sessId===curSess));sv('completed',completed);}
+  const msg=fi?'¿Borrar este entrenamiento del calendario?':'¿Cancelar el entrenamiento en curso?\n\nLas series que hayas anotado se conservan.';
+  if(!confirm(msg))return;
+  const date=wDate();
+  if(fi){completed=completed.filter(w=>!(w.date===date&&w.sessId===curSess));sv('completed',completed);}
   activeSess='';sv('activeSess','');
+  activeDate='';sv('activeDate','');
   resetST();resetRT();
   toast(fi?'Sesión eliminada del calendario':'Entrenamiento cancelado');render();
 };
@@ -1155,7 +1197,7 @@ function drawPgChart(){
 function renderCalendar(){
   const y=calDate.getFullYear(),m=calDate.getMonth();
   const ms=y+'-'+String(m+1).padStart(2,'0');
-  const mw=completed.filter(w=>w.date.startsWith(ms));
+  const mw=completed.map((w,i)=>Object.assign({_i:i},w)).filter(w=>w.date.startsWith(ms));
   const totalS=new Set(mw.map(w=>w.date)).size;
   const totalD=mw.reduce((s,w)=>s+(w.dur||0),0);
   const totalV=Object.keys(sessions).filter(dk=>dk.startsWith(ms)).reduce((sum,dk)=>{
@@ -1191,14 +1233,14 @@ function renderCalendar(){
     const wks=byDate[calSel]||[];
     h+='<div class="cal-detail"><div style="font-size:12px;color:var(--text2);margin-bottom:8px">'+calSel+'</div>';
     if(!wks.length){h+='<div style="font-size:12px;color:var(--text3)">Sin entrenamiento registrado</div>';}
-    else wks.forEach(w=>{h+='<div style="padding:7px 0;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:2px;background:'+(TC[w.type]||'#666')+';flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:'+(TC[w.type]||'#fff')+'">'+w.label+' — '+w.sub+'</div><div style="font-size:11px;color:var(--text2)">'+(w.dur?fmtH(w.dur):'—')+'</div></div></div>';});
+    else wks.forEach(w=>{h+='<div style="padding:7px 0;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:2px;background:'+(TC[w.type]||'#666')+';flex-shrink:0"></div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:'+(TC[w.type]||'#fff')+'">'+w.label+' — '+w.sub+'</div><div style="font-size:11px;color:var(--text2)">'+(w.dur?fmtH(w.dur):'—')+'</div></div><button class="hist-edit" onclick="openTimeModal(\'done\','+w._i+')">✎ Editar</button></div>';});
     h+='</div>';
   }
 
   h+='<div class="pgsec">Historial de sesiones</div>';
   if(!completed.length){h+='<div class="pgempty" style="padding:20px 0">Sin sesiones completadas aún.</div>';}
   else{
-    [...completed].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30).forEach(w=>{
+    completed.map((w,i)=>Object.assign({_i:i},w)).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30).forEach(w=>{
       const col=TC[w.type]||'#888';
       const dk=w.date+'_'+w.sessId;
       const exDone=[];
@@ -1212,7 +1254,7 @@ function renderCalendar(){
           }
         });
       }
-      h+='<div class="hist-card"><div class="hist-top"><div><div class="hist-title" style="color:'+col+'">'+w.label+' <span style="color:var(--text);font-weight:400">'+w.sub+'</span></div><div class="hist-meta">'+w.date+' · '+(w.dur?fmtH(w.dur):'—')+'</div></div>';
+      h+='<div class="hist-card"><div class="hist-top"><div><div class="hist-title" style="color:'+col+'">'+w.label+' <span style="color:var(--text);font-weight:400">'+w.sub+'</span></div><div class="hist-meta">'+w.date+' · '+(w.dur?fmtH(w.dur):'—')+' · <span class="hist-editlink" onclick="openTimeModal(\'done\','+w._i+')">✎ Editar</span></div></div>';
       h+='<span class="hist-cnt" style="background:'+col+'22;color:'+col+';border:1px solid '+col+'44">'+exDone.length+' ejerc.</span></div>';
       exDone.slice(0,4).forEach(e=>{h+='<div class="hist-row"><span>'+e.nm+'</span><span>'+e.sets+' series · '+(e.best.kg||'?')+'kg×'+(e.best.reps||'?')+'</span></div>';});
       if(exDone.length>4)h+='<div style="font-size:11px;color:var(--text3);padding-top:4px">+'+( exDone.length-4)+' más</div>';
@@ -1286,7 +1328,7 @@ function renderProfile(){
     if(statPer==='mes')from=new Date(now.getFullYear(),now.getMonth(),1);
     else if(statPer==='3m'){from=new Date(now);from.setMonth(now.getMonth()-3);}
     else from=new Date(now.getFullYear(),0,1);
-    const fromS=from.toISOString().split('T')[0];
+    const fromS=dstr(from);
     const fw=completed.filter(w=>w.date>=fromS);
     const totS=fw.length,totD=fw.reduce((s,w)=>s+(w.dur||0),0);
     const totV=Object.keys(sessions).filter(dk=>dk.split('_')[0]>=fromS).reduce((sum,dk)=>{const s=sessions[dk];return sum+Object.keys(s).filter(k=>k!=='__note__').reduce((s2,k)=>s2+(s[k].sets||[]).filter(ss=>ss.done).reduce((s3,ss)=>s3+(parseFloat(ss.kg)||0)*(parseInt(ss.reps)||1),0),0);},0);
@@ -1412,14 +1454,14 @@ function initSetIfNeeded(sk,exId,idx){
   if(!sess.sets[idx]){
     const prev=getPrev(sk,exId);
     const src=prev&&prev[idx]?prev[idx]:null;
-    sess.sets[idx]={kg:src?src.kg||'':'',reps:src?src.reps||'':'',rir:'',rest:src?src.rest||'':'',done:false,type:src?src.type||'N':'N'};
+    sess.sets[idx]={kg:src?src.kg||'':'',reps:src?src.reps||'':'',rir:(src&&src.rir!==undefined?src.rir:''),rest:src?src.rest||'':'',done:false,type:src?src.type||'N':'N'};
   }
 }
 window.initSet=function(sk,exId,idx){initSetIfNeeded(sk,exId,idx);saveSess();};
 window.addSet=function(sk,exId){
   const sess=getSets(sk,exId);
   const last=sess.sets[sess.sets.length-1];
-  sess.sets.push({kg:last?last.kg:'',reps:last?last.reps:'',rir:'',rest:last?last.rest||'':'',done:false,type:'N'});
+  sess.sets.push({kg:last?last.kg:'',reps:last?last.reps:'',rir:(last&&last.rir!==undefined?last.rir:''),rest:last?last.rest||'':'',done:false,type:'N'});
   saveSess();render();
 };
 window.delSet=function(sk,exId,idx){
@@ -1444,7 +1486,7 @@ window.togDone=function(sk,exId,idx){
   render();
 };
 window.saveNote=function(el){
-  const dk=today()+'_'+el.dataset.sk;
+  const dk=wDate()+'_'+el.dataset.sk;
   if(!sessions[dk])sessions[dk]={};
   sessions[dk]['__note__']=el.value;saveSess();
 };
@@ -1514,6 +1556,81 @@ window.openPhoto=function(idx){
 window.closePhoto=function(){document.getElementById('modal-photo').style.display='none';};
 window.delPhoto=function(idx){photoLog.splice(idx,1);sv('photoLog',photoLog);document.getElementById('modal-photo').style.display='none';toast('Foto eliminada');render();};
 
+// ═══════════════════════════════ FECHA Y DURACIÓN EDITABLES ═══════════════════════════════
+let pendTime=null;
+function hasDoneData(obj){return !!obj&&Object.keys(obj).some(k=>k!=='__note__'&&obj[k]&&obj[k].sets&&obj[k].sets.some(s=>s.done));}
+function moveSessionData(fromDate,toDate,sessId){
+  const a=fromDate+'_'+sessId,b=toDate+'_'+sessId;
+  if(a===b||!sessions[a])return true;
+  if(hasDoneData(sessions[b])&&!confirm('Ya hay series registradas el '+toDate+' para este entrenamiento.\n¿Sustituirlas por las de '+fromDate+'?'))return false;
+  sessions[b]=sessions[a];delete sessions[a];
+  saveSess();return true;
+}
+window.openTimeModal=function(mode,idx,liveDef){
+  let date,secs,fixed=false;
+  if(mode==='active'){
+    if(!activeSess)return;
+    date=activeDate||today();secs=stSec;fixed=stFixed!==null;
+  } else {
+    const w=completed[idx];if(!w)return;
+    date=w.date;secs=w.dur||0;
+  }
+  const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60);
+  pendTime={mode:mode,idx:idx,date:date,h:h,m:m};
+  const live=(liveDef===undefined)?!fixed:liveDef;
+  let inner='<div class="modal-bg" onclick="if(event.target===this)closeTimeModal()"><div class="modal">';
+  inner+='<div class="modal-title">'+(mode==='active'?'Fecha y duración del entrenamiento':'Editar entrenamiento')+'</div>';
+  inner+='<div class="input-row"><label>Fecha</label><input class="prof-inp" type="date" id="tm-date" max="'+today()+'" value="'+date+'"></div>';
+  inner+='<div class="input-row"><label>Duración</label><input class="prof-inp tm-num" type="number" inputmode="numeric" min="0" max="23" id="tm-h" value="'+h+'"><span class="tm-unit">h</span><input class="prof-inp tm-num" type="number" inputmode="numeric" min="0" max="59" id="tm-m" value="'+m+'"><span class="tm-unit">min</span></div>';
+  if(mode==='active'){
+    inner+='<label class="tm-check"><input type="checkbox" id="tm-live"'+(live?' checked':'')+'> Seguir contando en vivo desde ese tiempo</label>';
+    inner+='<div class="tm-hint">Si lo desmarcas, el cronómetro queda fijo en la duración indicada (útil para registrar un entrenamiento que ya hiciste).</div>';
+  }
+  inner+='<button class="msave-btn" onclick="saveTimeModal()">Guardar</button>';
+  inner+='<button class="modal-cancel" onclick="closeTimeModal()">Cancelar</button>';
+  inner+='</div></div>';
+  const mm=document.getElementById('modal-time');mm.innerHTML=inner;mm.style.display='block';
+};
+window.closeTimeModal=function(){document.getElementById('modal-time').style.display='none';pendTime=null;};
+window.saveTimeModal=function(){
+  if(!pendTime)return;
+  const p=pendTime;
+  const d=(document.getElementById('tm-date').value||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){toast('Fecha no válida');return;}
+  if(d>today()){toast('La fecha no puede ser futura');return;}
+  const hh=Math.min(23,Math.max(0,parseInt(document.getElementById('tm-h').value)||0));
+  const mi=Math.min(59,Math.max(0,parseInt(document.getElementById('tm-m').value)||0));
+  const secs=hh*3600+mi*60;
+  const changedDur=(hh!==p.h||mi!==p.m);
+  if(p.mode==='active'){
+    if(d!==p.date){
+      if(!moveSessionData(p.date,d,activeSess))return;
+      activeDate=d;sv('activeDate',d);
+    }
+    const liveEl=document.getElementById('tm-live');
+    const live=liveEl?liveEl.checked:true;
+    const newSecs=changedDur?secs:stSec;
+    stopST();
+    if(live){stFixed=null;stSec=newSecs;stStart=Date.now()-newSecs*1000;}
+    else{stFixed=newSecs;stSec=newSecs;}
+    sv('stFixed',stFixed);sv('stStart',stStart);sv('stSec',stSec);
+    startST();
+  } else {
+    const w=completed[p.idx];
+    if(!w){closeTimeModal();return;}
+    if(d!==w.date){
+      if(completed.some((x,i)=>i!==p.idx&&x.date===d&&x.sessId===w.sessId)){toast('Ya hay un entrenamiento de esta sesión ese día');return;}
+      if(!moveSessionData(w.date,d,w.sessId))return;
+      w.date=d;
+    }
+    if(changedDur)w.dur=secs;
+    sv('completed',completed);
+  }
+  closeTimeModal();
+  toast('Guardado');
+  render();
+};
+
 // ═══════════════════════════════ BACKUP ═══════════════════════════════
 const BACKUP_KEYS=['sessions','customEx','completed','weightLog','measLog','photoLog','curSess','curFolder','isDark','openCards'];
 
@@ -1558,6 +1675,8 @@ window.importBackup=function(e){
       });
       // Limpia cualquier entrenamiento a medias para evitar estados raros
       localStorage.setItem('rv7_activeSess',JSON.stringify(''));
+      localStorage.setItem('rv7_activeDate',JSON.stringify(''));
+      localStorage.setItem('rv7_stFixed','null');
       localStorage.setItem('rv7_stSec',JSON.stringify(0));
       localStorage.setItem('rv7_stStart',JSON.stringify(0));
       localStorage.setItem('rv7_rtEnd',JSON.stringify(0));
@@ -1594,7 +1713,7 @@ window.toggleTheme=function(){isDark=!isDark;sv('isDark',isDark);applyTheme();};
 
 // ═══════════════════════════════ INIT ═══════════════════════════════
 applyTheme();
-if(stStart&&activeSess)startST();
+if(activeSess)startST();
 if(rtEnd){rtOn=true;rtInt=setInterval(syncRT,250);syncRT();}
 render();
 </script>
