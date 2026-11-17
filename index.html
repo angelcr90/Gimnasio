@@ -149,14 +149,15 @@ body.light{
 .sub-label{font-size:12px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px}
 
 /* REST TIMER BAR */
-.rest-hdr{position:sticky;top:var(--hdr-h,48px);z-index:199;background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);margin:0 -16px 12px;padding:8px 16px;display:flex;align-items:center;gap:8px}
-.rest-hdr-time{font-size:20px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;min-width:54px;cursor:pointer}
+.rest-hdr{position:sticky;top:var(--hdr-h,48px);z-index:199;background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);margin:0 -16px 12px;padding:8px 16px;display:flex;align-items:center;gap:6px}
+.rest-hdr-time{font-size:19px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;min-width:50px;cursor:pointer}
 .rest-hdr-time.warn{color:var(--danger)}
-.rest-hdr-time.idle{color:var(--text3);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
-.rest-hdr-btns{display:flex;gap:5px;flex:1;overflow-x:auto;scrollbar-width:none;justify-content:flex-end}
+.rest-hdr-time.idle{color:var(--text3);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.rest-hdr-btns{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none;justify-content:flex-end}
 .rest-hdr-btns::-webkit-scrollbar{display:none}
-.rest-hdr-btn{padding:6px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.rest-hdr-btn{padding:6px 8px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .rest-hdr-btn:active{background:var(--accent);color:#0A0B0E;border-color:var(--accent)}
+.rest-hdr-ios{padding:6px 8px;border-radius:8px;border:1px solid rgba(0,240,255,0.35);background:var(--accent-glow);color:var(--accent);font-size:11.5px;font-weight:800;cursor:pointer;white-space:nowrap}
 .rest-hdr-skip{padding:6px 8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
 
 /* FINISH & NOTES */
@@ -694,6 +695,15 @@ const EX_LIB={
 };
 
 const GUIDE_DATA=[
+  {id:'ios_shortcuts',icon:'🍎',name:'Conectar Apple Salud y Reloj iOS',badge:'b-clu',bTxt:'IPHONE',rir:'Configuración única en 30 segundos',
+   desc:'Permite que el botón "Guardar en Apple Salud" y "⏰ iOS" envíen tus entrenamientos directamente a tus anillos de Actividad y al Reloj del iPhone.',
+   steps:[
+     'Abre la app "Atajos" (Shortcuts) en tu iPhone y pulsa "+" arriba a la derecha.',
+     'Para Apple Salud: Nómbralo exactamente "Guardar Entreno Salud". Añade la acción "Registrar entrenamiento" -> Tipo: "Entrenamiento de fuerza tradicional", Duración: "Entrada del atajo" (en minutos).',
+     'Para el Temporizador nativo: Crea otro atajo llamado "Temporizador Gym". Añade la acción "Iniciar temporizador" -> Duración: "Entrada del atajo" (en segundos).',
+     '¡Listo! Desde ese momento, ambos botones de la app se comunicarán automáticamente con iOS.'
+   ],
+   when:'Al pulsar "🍎 Guardar en Apple Salud" tras finalizar la sesión o "⏰ iOS" durante el descanso.'},
   {id:'dropset',icon:'📉',name:'Drop Set',badge:'b-drop',bTxt:'DROP SET',rir:'0 RIR — fallo real',
    desc:'Al llegar al fallo reduces el peso un 20–30% sin descanso y continúas. Lleva el músculo más allá del fallo metabólico.',
    steps:['Ejecuta la serie hasta el fallo o 0–1 RIR.','Reduce el peso un 20–30% inmediatamente.','Continúa hasta el fallo de nuevo.'],
@@ -864,6 +874,40 @@ const saveSess  = ()=>sv('sessions',sessions);
 const isFinished= ()=>completed.some(w=>w.date===wDate()&&w.sessId===curSess);
 const isStarted = ()=>activeSess===curSess||isFinished();
 
+// ═══════════════════════════════ SOUND SYNTHESIZER & IOS BRIDGES ═══════════════════════════════
+let audioCtx=null;
+function playGymBeep(type){
+  try{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    const now=audioCtx.currentTime;
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    osc.connect(gain);gain.connect(audioCtx.destination);
+    if(type==='tick'){
+      osc.type='sine';osc.frequency.setValueAtTime(520,now);
+      gain.gain.setValueAtTime(0.08,now);gain.gain.exponentialRampToValueAtTime(0.001,now+0.12);
+      osc.start(now);osc.stop(now+0.12);
+    } else {
+      osc.type='triangle';
+      osc.frequency.setValueAtTime(880,now);
+      osc.frequency.setValueAtTime(1174.66,now+0.16);
+      gain.gain.setValueAtTime(0.22,now);gain.gain.exponentialRampToValueAtTime(0.001,now+0.45);
+      osc.start(now);osc.stop(now+0.45);
+    }
+  }catch(e){}
+}
+
+window.triggerIOSTimer=function(){
+  const secs=rtSec>0?rtSec:90;
+  window.location.href='shortcuts://run-shortcut?name='+encodeURIComponent('Temporizador Gym')+'&input=text&text='+secs;
+};
+
+window.syncAppleHealth=function(durSecs,volKg){
+  const mins=Math.max(1,Math.round((durSecs||2700)/60));
+  window.location.href='shortcuts://run-shortcut?name='+encodeURIComponent('Guardar Entreno Salud')+'&input=text&text='+mins;
+};
+
 // ═══════════════════════════════ TIMERS ═══════════════════════════════
 function startST(){
   if(stFixed!==null){stopST();stSec=stFixed;updSTUI();return;}
@@ -884,17 +928,27 @@ function updSTUI(){
   if(dt)dt.style.display=show?'none':'';
 }
 
+let lastBeepSec=-1;
 function startRT(s){
-  stopRT();rtEnd=Date.now()+s*1000;sv('rtEnd',rtEnd);rtSec=s;rtOn=true;
+  stopRT();rtEnd=Date.now()+s*1000;sv('rtEnd',rtEnd);rtSec=s;rtOn=true;lastBeepSec=-1;
+  playGymBeep('tick');
   rtInt=setInterval(syncRT,250);updRTUI();
 }
 function syncRT(){
   if(!rtEnd){rtSec=0;updRTUI();return;}
   const left=Math.ceil((rtEnd-Date.now())/1000);
   if(left<=0){
-    const wasRunning=rtOn;stopRT();rtSec=0;rtEnd=0;sv('rtEnd',0);
-    if(wasRunning){haptic([50,30,80]);toast('⚡ ¡Tiempo de descanso cumplido!');}
+    const wasRunning=rtOn;stopRT();rtSec=0;rtEnd=0;sv('rtEnd',0);lastBeepSec=-1;
+    if(wasRunning){
+      playGymBeep('done');
+      haptic([60,40,100]);
+      toast('⚡ ¡Tiempo de descanso cumplido!');
+    }
     updRTUI();return;
+  }
+  if(left<=3 && left!==lastBeepSec){
+    lastBeepSec=left;
+    playGymBeep('tick');
   }
   rtSec=left;updRTUI();
 }
@@ -1000,7 +1054,7 @@ function renderTrain(){
     h+='<button class="rest-hdr-btn" onclick="setTI(90)">1\'30</button>';
     h+='<button class="rest-hdr-btn" onclick="setTI(120)">2\'00</button>';
     h+='<button class="rest-hdr-btn" onclick="setTI(150)">2\'30</button>';
-    h+='</div><button class="rest-hdr-skip" onclick="skipRT()">✕</button></div>';
+    h+='</div><button class="rest-hdr-ios" onclick="triggerIOSTimer()" title="Abrir en Reloj de iPhone">⏰ iOS</button><button class="rest-hdr-skip" onclick="skipRT()">✕</button></div>';
   }
 
   for(let i=0;i<day.secs.length;i++){
@@ -1221,6 +1275,7 @@ function showWorkoutRecap(label,dur,vol,setsCount,prsCount){
       '</div>'+
       (prsCount>0?'<div style="margin-top:10px;font-size:13px;font-weight:800;color:var(--lime)">🔥 ¡'+prsCount+' nuevo(s) récord(s) personal(es)!</div>':'')+
     '</div>'+
+    '<button class="msave-btn" style="background:#FA2D55;color:#fff;margin-bottom:8px" onclick="syncAppleHealth('+dur+','+Math.round(vol)+')">🍎 Guardar en Apple Salud</button>'+
     '<button class="msave-btn" onclick="closeRecapModal()">Continuar</button>'+
   '</div></div>';
   m.style.display='block';
@@ -1443,7 +1498,7 @@ function drawPgChart(){
 
 function drawRadar(fromS, canvasId){
   const c=document.getElementById(canvasId||'radar-c');if(!c)return;
-  const ctx=c.getContext('2d');const W=c.offsetWidth||300,H=270;c.width=W;c.height=H;
+  const ctx=c.getContext('2d');const W=c.offsetWidth||300,H=285;c.width=W;c.height=H;
   const groups=['Pecho','Hombros','Espalda','Tríceps','Bíceps','Pierna'];
   const cnt=[0,0,0,0,0,0];
 
@@ -1466,7 +1521,7 @@ function drawRadar(fromS, canvasId){
   });
 
   const mx=Math.max(...cnt,10);
-  const N=6,CX=W/2,CY=H/2,R=Math.min(W,H)/2-56;
+  const N=6,CX=W/2,CY=H/2,R=Math.min(W,H)/2-68;
   ctx.clearRect(0,0,W,H);
 
   for(let ring=1;ring<=4;ring++){
@@ -1501,7 +1556,7 @@ function drawRadar(fromS, canvasId){
     const a=Math.PI*2*i/N-Math.PI/2;
     const r=R*(cnt[i]/mx);
     ctx.beginPath();ctx.arc(CX+Math.cos(a)*r,CY+Math.sin(a)*r,4.5,0,Math.PI*2);ctx.fillStyle='#B8FF3B';ctx.fill();
-    const lr=R+28;
+    const lr=R+34;
     const x=CX+Math.cos(a)*lr,y=CY+Math.sin(a)*lr;
     ctx.fillStyle=isDark?'#F3F4F6':'#111827';ctx.font='700 11.5px -apple-system,sans-serif';ctx.textAlign='center';
     ctx.fillText(groups[i],x,y);
